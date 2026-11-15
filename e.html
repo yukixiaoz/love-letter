@@ -275,6 +275,42 @@ body.cover-lock{overflow:hidden}
   transition:opacity 1s ease, visibility 1s}
 .cover.open{opacity:0;visibility:hidden;pointer-events:none}
 /* ---------- 横屏手机：左右两栏 ---------- */
+/* 记入弹窗：小屏收缩，按钮一定看得见 */
+.modal-card.note{max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-card.note .modal-close{top:9px;right:9px;width:32px;height:32px;font-size:17px;line-height:32px}
+body.has-modal .sound{opacity:0;pointer-events:none;transition:opacity .2s}
+@supports (height:1dvh){ .modal-card.note{max-height:86dvh} }
+
+@media (max-width:520px){
+  .modal{align-items:flex-start;padding:3.2vh 10px 3.2vh;overflow-y:auto}
+  .modal-card{width:94vw;padding:30px 18px 22px}
+  .modal-card.note{padding:24px 16px 16px}
+  .modal-card .m-k{font-size:9.5px;letter-spacing:.32em;text-indent:.32em}
+  .modal-card h3{margin:9px 0 0;font-size:19px}
+  #nmDate{margin-top:3px;font-size:10px}
+  .note-who{margin-top:10px;gap:8px}
+  .who{font-size:12px;padding:4px 10px 4px 5px}
+  .who img{width:20px;height:20px}
+  .note-ta{min-height:78px;margin-top:9px;padding:9px 10px;font-size:13.5px;line-height:1.7}
+  .note-rec{margin-top:9px;gap:8px}
+  .rec-btn{width:38px;height:38px}
+  .rec-time{font-size:11.5px;line-height:38px;min-width:42px}
+  .rec-hint{font-size:11px;line-height:38px}
+  .note-row{margin-top:11px;gap:8px}
+  .note-btn{padding:6px 13px;font-size:12px}
+  .note-btn.primary{padding:6px 17px}
+  .note-audio{height:34px;margin-top:8px}
+  .modal-close{top:-10px;right:-6px;width:32px;height:32px;font-size:16px;line-height:32px}
+}
+
+@media (max-width:520px) and (max-height:680px){
+  .modal-card.note{padding:18px 14px 12px}
+  .modal-card h3{font-size:17px;margin-top:6px}
+  .note-ta{min-height:62px}
+  .note-rec{margin-top:7px}
+  .note-row{margin-top:9px}
+}
+
 @media (orientation:landscape) and (max-height:600px){
   body .cover{display:flex !important;flex-direction:row !important;align-items:center !important;
     justify-content:center !important;gap:3vw !important;padding:0 4vw !important}
@@ -1377,6 +1413,38 @@ function startMusic() {
   step();
 }
 
+/* --- 自动播放：先试一次，被浏览器拦就等第一次触碰 --- */
+let musicArmed = false;
+function armFirstTouch() {
+  if (musicArmed) return;
+  musicArmed = true;
+  const kick = () => {
+    document.removeEventListener('pointerdown', kick, true);
+    document.removeEventListener('touchstart', kick, true);
+    document.removeEventListener('keydown', kick, true);
+    if (!musicOn) startMusic();
+  };
+  document.addEventListener('pointerdown', kick, true);
+  document.addEventListener('touchstart', kick, true);
+  document.addEventListener('keydown', kick, true);
+}
+function autoMusic() {
+  if (!BGM.length || musicOn) return;
+  if (!bgm.getAttribute('src')) {
+    const nxt = bgmPick();
+    if (!nxt) return;
+    bgm.src = nxt;
+    bgmLast = nxt;
+  }
+  bgm.volume = .30;
+  const pr = bgm.play();
+  if (!pr || !pr.then) { musicOn = true; btn.classList.add('on'); return; }
+  pr.then(() => { musicOn = true; btn.classList.add('on'); })
+    .catch(() => { try { bgm.pause(); } catch (e) {} armFirstTouch(); });
+}
+setTimeout(autoMusic, 400);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(autoMusic, 300); });
+
 btn.addEventListener('click', () => {
   musicOn = !musicOn;
   btn.classList.toggle('on', musicOn);
@@ -1731,6 +1799,107 @@ if (CQ.has('open') && coverEl) {
   }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (e) {} };
 
+  // ---- 云端同步：所有人共用一份「挂在天上的信」 ----
+  const CLOUD = {
+    id: 'ff808181a09d98f701a1de3640272fd2',
+    base: 'https://api.restful-api.dev/objects/',
+    on: true,
+    busy: false
+  };
+
+  const cloudShape = (n) => {
+    const o = { id: n.id, who: n.who || 'z', text: n.text, x: n.x, ts: n.ts,
+                hasAudio: !!n.hasAudio, d: n.d || '' };
+    if (n._audio) o.audio = n._audio;
+    return o;
+  };
+
+  const cloudGet = async () => {
+    const r = await fetch(CLOUD.base + CLOUD.id, { cache: 'no-store' });
+    if (!r.ok) throw new Error('get ' + r.status);
+    const j = await r.json();
+    const list = (j && j.data && j.data.notes) || [];
+    return Array.isArray(list) ? list : [];
+  };
+
+  const cloudPut = async (list) => {
+    const r = await fetch(CLOUD.base + CLOUD.id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'yuki-notes-v1', data: { notes: list } })
+    });
+    if (!r.ok) throw new Error('put ' + r.status);
+  };
+
+  const cloudAdd = async (note) => {
+    try {
+      const list = await cloudGet();
+      const key = String(note.ts);
+      if (!list.some(n => String(n.ts) === key)) {
+        list.push(cloudShape(note));
+        await cloudPut(list);
+      }
+      note.cid = 'shared';
+      save();
+    } catch (e) {
+      window.__cloudErr = (e && (e.message || e.name)) || String(e);
+    }
+  };
+
+  const cloudDel = async (note) => {
+    if (!note) return;
+    try {
+      const list = await cloudGet();
+      await cloudPut(list.filter(n => String(n.ts) !== String(note.ts)));
+    } catch (e) {}
+  };
+
+  const cloudMerge = async () => {
+    if (!CLOUD.on || CLOUD.busy) return 0;
+    CLOUD.busy = true;
+    let added = 0;
+    try {
+      const remote = await cloudGet();
+      const have = new Set(notes.map(n => String(n.ts)));
+      const pad = n => String(n).padStart(2, '0');
+      remote.forEach(r => {
+        if (!r || !r.ts || have.has(String(r.ts))) return;
+        const d = new Date(r.ts);
+        const snapped = PAD + Math.round((Number(r.x) - PAD) / STEP) * STEP;
+        const note = {
+          id: r.id || ('c' + String(r.ts) + Math.random().toString(36).slice(2, 5)),
+          x: Math.max(PAD, snapped),
+          who: r.who || 'z',
+          text: r.text,
+          ts: r.ts,
+          d: `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+          hasAudio: !!r.hasAudio,
+          cid: 'shared'
+        };
+        if (r.audio) note._audio = r.audio;
+        notes.push(note);
+        have.add(String(r.ts));
+        added++;
+      });
+      if (added) { save(); }
+      render();
+      if (added && vp) {
+        const first = notes[notes.length - added];
+        vp.scrollTo({ left: Math.max(0, first.x - vp.clientWidth / 2), behavior: 'smooth' });
+      }
+      if (hint) hint.textContent = notes.length
+        ? `已挂上 ${notes.length} 封信 · 大家都能看见`
+        : '左右滑动 · 点亮一个点';
+    } catch (e) {
+      window.__cloudErr = (e && (e.message || e.name)) || String(e);
+      if (hint) hint.textContent = '网络没连上 · 先挂在本机';
+    }
+    CLOUD.busy = false;
+    return added;
+  };
+
+  window.__cloud = { list: () => cloudGet(), add: (n) => cloudAdd(n), merge: () => cloudMerge() };
+
   const modal = document.getElementById('noteModal');
   const nmTitle = document.getElementById('nmTitle');
   const nmK = document.getElementById('nmK');
@@ -1845,6 +2014,7 @@ if (CQ.has('open') && coverEl) {
 
   const openModal = (mode, payload) => {
     modal.classList.add('open');
+    document.body.classList.add('has-modal');
     document.body.style.overflow = 'hidden';
     if (mode === 'write') {
       editing = { x: payload.x, who: 'z' };
@@ -1884,6 +2054,7 @@ if (CQ.has('open') && coverEl) {
   };
   const closeModal = () => {
     if (rec) { try { rec.stop(); } catch (e) {} }
+    document.body.classList.remove('has-modal');
     modal.classList.remove('open');
     document.body.style.overflow = '';
     nmText.readOnly = false;
@@ -1923,10 +2094,24 @@ if (CQ.has('open') && coverEl) {
     }
     notes.push(note);
     save(); render(); closeModal();
+    (async () => {
+      if (recBlob && recBlob.size && recBlob.size < 220000) {
+        try {
+          note._audio = await new Promise(res => {
+            const fr = new FileReader();
+            fr.onload = () => res(String(fr.result));
+            fr.onerror = () => res(null);
+            fr.readAsDataURL(recBlob);
+          });
+        } catch (e) {}
+      }
+      cloudAdd(note);
+    })();
   });
   nmDel.addEventListener('click', () => {
     if (!editing || !editing.note) return;
     if (editing.note.id) clipDel(editing.note.id);
+    cloudDel(editing.note);
     notes = notes.filter(n => n !== editing.note);
     save(); render(); closeModal();
   });
@@ -2115,8 +2300,15 @@ if (CQ.has('open') && coverEl) {
   // 存过的话，页脚提示
   const hint = document.getElementById('tlHint');
   if (hint) hint.textContent = notes.length
-    ? `已挂上 ${notes.length} 封信 · 左右滑动看看`
+    ? `已挂上 ${notes.length} 封信 · 大家都能看见`
     : '左右滑动 · 点亮一个点';
+
+  cloudMerge();
+  // 刚加载时网络/接口可能还没就绪，补两次
+  setTimeout(() => cloudMerge(), 3000);
+  setTimeout(() => cloudMerge(), 8000);
+  setInterval(() => { if (!document.hidden) cloudMerge(); }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cloudMerge(); });
 })();
 
 document.addEventListener('visibilitychange', () => {
