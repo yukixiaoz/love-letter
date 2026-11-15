@@ -588,9 +588,9 @@ html.flat .wheel-stage{max-width:620px}
   <canvas id="petals" aria-hidden="true"></canvas>
 
   <div class="cv-top">
-    <p class="cv-k">FOR YUKI · 289</p>
+    <p class="cv-k">FOR YUKI · 293</p>
     <h1 class="cv-title">在樱花树下，等一封信</h1>
-    <div class="cv-lines"><p>这是一封写给你的信，一共 289 个字。</p><p>点开信封，读完，再往下听听你唱过的那些歌。</p></div>
+    <div class="cv-lines"><p>这是一封写给你的信，一共 293 个字。</p><p>点开信封，读完，再往下听听你唱过的那些歌。</p></div>
   </div>
 
   <div class="cv-env-wrap">
@@ -616,7 +616,7 @@ html.flat .wheel-stage{max-width:620px}
           </svg>
         </div>
         <div class="env-lab">
-          <p class="env-k">TO YUKI · 289</p>
+          <p class="env-k">TO YUKI · 293</p>
           <p class="env-t">给 Yuki 的情书</p>
           <div class="env-rule"><i></i></div>
           <p class="env-s">写在一个还挂着你电话的夜晚</p>
@@ -717,7 +717,7 @@ html.flat .wheel-stage{max-width:620px}
       <div class="lc-body" id="lcBody"></div>
       <p class="lc-sign">—— 小 z 宝宝的情书<br><span style="font-size:12.5px;opacity:.8">写在想你的一天</span></p>
       <div class="lc-foot">
-        <span class="lc-stat"><b>289</b> 个字 · <b>17</b> 句</span>
+        <span class="lc-stat"><b>293</b> 个字 · <b>18</b> 句 · 每一句都是奇数</span>
         <button class="btn-ghost" id="replay">再读一遍 · 这回读慢一点</button>
       </div>
       <div class="acro-note" id="acroNote" aria-live="polite">
@@ -832,7 +832,7 @@ html.flat .wheel-stage{max-width:620px}
 </div>
 
 <script>
-const PARAS = ["我在写这封信之前，把所有聊天记录重新看了一遍。才发现我们早就聊过了那么多的话。和你聊天，是我一天里最松弛的时候。", "喜欢这件事，是从第一句你好开始的。你性格鲜活，开心和难过都写在脸上。你很傲娇，嘴上说不要，心里却很在意。", "欢脱这个词，用在你身上刚刚好。看见你和别的男生笑，我会一个人安静很久。", "你是三月二十八的白羊座，热烈又直接。我梦见你站在我面前，把生日蜡烛轻轻递给我。我低头许愿，许的是每年都在你身边。", "很多个夜里，我想着你就睡着了，半夜醒来第一个想到的还是你。", "久一点也没关系，我可以等下去。我喜欢你，不是一时兴起，是攒了很久的真心话。", "了不起的是，隔着那么远，我还是把你放进了余生里。这封信只属于你一个人。嗯，我真的好喜欢好喜欢你，你愿意和我在一起吗？"];
+const PARAS = ["我在写这封信之前，把所有聊天记录重新看了一遍。才发现我们早就聊过了那么多的话。和你聊天，是我一天里最松弛的时候。", "喜欢这件事，是从第一句你好开始的。你性格鲜活，开心和难过都写在脸上。你很傲娇，嘴上说不要，心里却很在意。", "欢脱这个词，用在你身上刚刚好。看见你和别的男生说笑，我会一个人安静很久。", "你是三月二十八的白羊座，又热烈又直接。我梦见你站在我面前，把生日蜡烛轻轻递给我。我低头许愿，许的是每年都在你身边。", "很多个夜里，我想着你就睡着了。半夜醒来第一个想到的还是你。", "久一点也没关系，我可以等下去。我喜欢你，不是一时兴起，是攒了很久的真心话。", "了不起的是，隔着那么远，我还是把你放进了余生里。这一封信只属于你一个人。嗯，我真的好喜欢好喜欢你呀，你愿意和我在一起吗？"];
 const SONGS = [{"title": "我们俩", "memory": "那我唱那个嗯锅定的我们俩，你在左边，我紧靠右第一张照片，不太敢亲密的，属于我们俩…", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《我们俩》_20260802-2217.mp3"}, {"title": "静悄悄", "memory": "最想要看到是你的微笑，在我的眼中，你是最好肉麻的调调，你不会知道我爱的静悄悄，我…", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《静悄悄》_20260804-0903.mp3"}, {"title": "有些", "memory": "难过夹带陌生的感觉，有一些已模糊的镜头，拉不回那从前，明明不是下雨天，却淋湿双眼…", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《有些》_20260804-0905.mp3"}, {"title": "盛夏的果实", "memory": "也许放弃才能靠近你，不再见你，你才会把我记起。", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《盛夏的果实》_20260805-1452.mp3"}, {"title": "歌唱祖国", "memory": "五星红旗，迎风飘扬，胜利歌声王词。", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《歌唱祖国》_20260809-1733.mp3"}, {"title": "演员", "memory": "其实他家的观众就我一个。其实你你知道我在唱什么吗？", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《演员》_20260810-1119.mp3"}, {"title": "爱河", "memory": "如果晚霞绕过记忆变成哒哒哒哒哒哒哒哒哒哒哒。", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《爱河》_20260814-2212.mp3"}, {"title": "出山", "memory": "在夜半三更过天桥，从来不敢回头看。白日里是车水马龙。此时脚霞石望川。我独自走过半…", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《出山》_20260830-2214.mp3"}, {"title": "镜子里的宇宙", "memory": "这个我跑调，你听出来了吗？我不太会唱镜子里的宇宙这就还记得那个深秋你说要走，不知…", "src": "voice/Yuki/唱歌/Yuki宝宝_唱歌_《镜子里的宇宙》_20260830-2216.mp3"}, {"title": "萱草花", "memory": "高高的青山上喧草开放。", "src": "voice/小z/唱歌/小z宝宝_唱歌_《萱草花》_20260820-1327.mp3"}, {"title": "小宝宝快睡觉", "memory": "小宝宝快睡觉，做个好梦去找找。", "src": "voice/小z/唱歌/小z宝宝_唱歌_《小宝宝快睡觉》_20260820-1330.mp3"}, {"title": "小福星宝宝_唱歌_01_20260902-1727", "memory": "若是谁，不这你每瑰没有爱。", "src": "voice/Yuki/唱歌/小福星宝宝_唱歌_01_20260902-1727.mp3"}, {"title": "我们俩", "memory": " 唱给我听的那一段", "src": "voice/小z/唱歌/我们俩.mp3"}, {"title": "有些", "memory": " 唱给我听的那一段", "src": "voice/小z/唱歌/有些.mp3"}, {"title": "盛夏的果实", "memory": " 唱给我听的那一段", "src": "voice/小z/唱歌/盛夏的果实.mp3"}, {"title": "静悄悄", "memory": " 唱给我听的那一段", "src": "voice/小z/唱歌/静悄悄.mp3"}];
 const AVZ = "avatar-z.jpg";
 const AVY = "avatar-yuki.jpg";
