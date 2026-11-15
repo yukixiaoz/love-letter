@@ -1263,10 +1263,19 @@ bgm.id = 'bgm';
 bgm.preload = 'auto';
 bgm.volume = 0;
 document.body.appendChild(bgm);
-let bgmIdx = -1, bgmDuck = false;
+let bgmIdx = -1, bgmDuck = false, bgmLast = "";
 
+const BGM_FAV = BGM.find(x => x.indexOf('出山') >= 0) || '';
 function bgmPick() {
   if (!BGM.length) return '';
+  if (BGM_FAV && BGM.length > 1) {
+    // 出山 与随机一首交替
+    if (bgmLast !== BGM_FAV) return BGM_FAV;
+    const others = BGM.filter(x => x !== BGM_FAV);
+    const pick = others[Math.floor(Math.random() * others.length)];
+    if (others.length > 1 && pick === bgmIdx) return others[(others.indexOf(pick) + 1) % others.length];
+    return pick;
+  }
   let i = Math.floor(Math.random() * BGM.length);
   if (BGM.length > 1 && i === bgmIdx) i = (i + 1) % BGM.length;
   bgmIdx = i;
@@ -1287,6 +1296,7 @@ function bgmStart() {
     const nxt = bgmPick();
     if (!nxt) return;
     bgm.src = nxt;
+    bgmLast = nxt;
   }
   bgm.volume = bgmDuck ? .06 : .30;
   const pr = bgm.play();
@@ -1296,6 +1306,7 @@ bgm.addEventListener('ended', () => {
   const nxt = bgmPick();
   if (!nxt) return;
   bgm.src = nxt;
+  bgmLast = nxt;
   bgm.volume = bgmDuck ? .06 : .30;
   const pr = bgm.play();
   if (pr && pr.catch) pr.catch(() => {});
