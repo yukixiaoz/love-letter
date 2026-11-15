@@ -340,6 +340,15 @@ body.has-modal .sound{opacity:0;pointer-events:none;transition:opacity .2s}
 }
 
 
+.music-hint{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:78;
+  padding:9px 16px;border-radius:999px;border:1px solid rgba(201,160,106,.5);
+  background:rgba(26,20,42,.74);color:#f6e9d2;font:12px/1 "KaiTi","STKaiti",serif;
+  letter-spacing:.12em;display:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.music-hint.on{display:block;animation:tapPulse 2.6s ease-in-out infinite}
+#dbg{position:fixed;left:0;top:0;z-index:99;margin:0;padding:6px 8px;max-width:96vw;
+  background:rgba(0,0,0,.78);color:#7fffa6;font:11px/1.45 Menlo,Consolas,monospace;
+  white-space:pre-wrap;pointer-events:none}
 .scene-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   opacity:0;transition:opacity .9s ease}
 .scene-video.ready{opacity:1}
@@ -1350,10 +1359,43 @@ let bgm2OK = true;
 bgm2.addEventListener('error', () => { bgm2OK = false; });
 document.body.appendChild(bgm2);
 const BGM2_BASE = .055, BGM2_DUCK = .015;
+
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let wctx = null, wg1 = null, wg2 = null, wctxTried = false;
+function ensureWebAudio() {
+  if (!IS_IOS || wctxTried) return;
+  wctxTried = true;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  try {
+    wctx = new AC();
+    wg1 = wctx.createGain();
+    wg1.gain.value = bgmDuck ? .06 : .30;
+    wg1.connect(wctx.destination);
+    wg2 = wctx.createGain();
+    wg2.gain.value = BGM2_BASE;
+    wg2.connect(wctx.destination);
+    wctx.createMediaElementSource(bgm).connect(wg1);
+    wctx.createMediaElementSource(bgm2).connect(wg2);
+    if (wctx.state === 'suspended') wctx.resume();
+  } catch (e) { wctx = null; wg1 = null; wg2 = null; }
+}
+function setGain1(v, tc) {
+  if (!wg1 || !wctx) return false;
+  wg1.gain.setTargetAtTime(v, wctx.currentTime, tc || .25);
+  return true;
+}
+function setGain2(v) {
+  if (!wg2 || !wctx) return false;
+  wg2.gain.setTargetAtTime(v, wctx.currentTime, .25);
+  return true;
+}
 function bgm2Sync() {
   if (!bgm2OK) return;
   if (musicOn) {
     bgm2.volume = bgmDuck ? BGM2_DUCK : BGM2_BASE;
+    setGain2(bgmDuck ? BGM2_DUCK : BGM2_BASE);
     const pr = bgm2.play();
     if (pr && pr.catch) pr.catch(() => {});
   } else {
@@ -1396,7 +1438,12 @@ function bgmStart() {
   }
   bgm.volume = bgmDuck ? .06 : .30;
   const pr = bgm.play();
-  if (pr && pr.catch) pr.catch(() => {});
+  if (pr && pr.then) {
+    pr.then(() => {
+      if (bgm.paused) { musicOn = false; armFirstTouch(); }
+      musicHintTick();
+    }).catch(() => { musicOn = false; armFirstTouch(); musicHintTick(); });
+  }
 }
 bgm.addEventListener('ended', () => {
   const nxt = bgmPick();
@@ -1409,11 +1456,13 @@ bgm.addEventListener('ended', () => {
 });
 function duckBgm(on) {
   bgmDuck = !!on;
-  if (musicOn) bgmFade(bgmDuck ? .06 : .30, 320);
+  const target = bgmDuck ? .06 : .30;
+  if (musicOn && !setGain1(target, .3)) bgmFade(target, 320);
   bgm2Sync();
 }
 
 function startMusic() {
+  ensureWebAudio();
   if (BGM.length) {
     if (musicOn) { bgmStart(); return; }
     musicOn = true;
@@ -1453,6 +1502,8 @@ function armFirstTouch() {
   };
   document.addEventListener('pointerdown', kick, true);
   document.addEventListener('touchstart', kick, true);
+  document.addEventListener('touchend', kick, true);
+  document.addEventListener('click', kick, true);
   document.addEventListener('keydown', kick, true);
 }
 function autoMusic() {
@@ -1466,13 +1517,77 @@ function autoMusic() {
   bgm.volume = .30;
   const pr = bgm.play();
   if (!pr || !pr.then) { musicOn = true; btn.classList.add('on'); bgm2Sync(); return; }
-  pr.then(() => { musicOn = true; btn.classList.add('on'); bgm2Sync(); })
-    .catch(() => { try { bgm.pause(); } catch (e) {} armFirstTouch(); });
+  pr.then(() => {
+    if (bgm.paused) { musicOn = false; armFirstTouch(); musicHintTick(); return; }
+    musicOn = true; btn.classList.add('on'); bgm2Sync(); musicHintTick();
+  }).catch(() => { try { bgm.pause(); } catch (e) {} armFirstTouch(); musicHintTick(); });
 }
 setTimeout(autoMusic, 400);
+
+/* ---- 音乐提示胶囊：没响就提示点一下（DOM 在脚本之后，需延迟绑定） ---- */
+let mhEl = null;
+function musicHintTick() {
+  if (!mhEl) mhEl = document.getElementById('musicHint');
+  if (!mhEl) return;
+  const ok = musicOn && !bgm.paused && bgm.volume > .02;
+  mhEl.classList.toggle('on', !ok && !document.body.classList.contains('has-modal'));
+}
+function bindMusicHint() {
+  mhEl = document.getElementById('musicHint');
+  if (mhEl && !mhEl.dataset.bound) {
+    mhEl.dataset.bound = '1';
+    mhEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ensureWebAudio();
+      musicOn = true;
+      btn.classList.add('on');
+      bgm.volume = .30;
+      bgmStart();
+      bgm2Sync();
+      setTimeout(musicHintTick, 300);
+    });
+  }
+  musicHintTick();
+}
+setInterval(musicHintTick, 1500);
+setTimeout(bindMusicHint, 300);
+document.addEventListener('DOMContentLoaded', bindMusicHint);
+window.addEventListener('load', bindMusicHint);
+
+/* ---- ?dbg=1 状态浮层 ---- */
+function bindDbg() {
+  const box = document.getElementById('dbg');
+  if (!box || box.dataset.bound) return;
+  if (!/(^|[?&])dbg=1/.test(location.search)) return;
+  box.dataset.bound = '1';
+  box.style.display = 'block';
+  setInterval(() => {
+    const intro = document.getElementById('intro');
+    box.textContent =
+      'musicOn=' + musicOn + ' paused=' + bgm.paused +
+      ' vol=' + bgm.volume.toFixed(2) + ' rs=' + bgm.readyState +
+      ' t=' + (bgm.currentTime || 0).toFixed(1) + '\n' +
+      'src=' + ((bgm.getAttribute('src') || '(none)').split('/').pop()) + '\n' +
+      'bgm2 paused=' + bgm2.paused + ' vol=' + bgm2.volume.toFixed(3) +
+      ' rs=' + bgm2.readyState + ' ok=' + bgm2OK + '\n' +
+      'intro=' + (intro ? 'yes' : 'no') + ' modal=' + document.body.classList.contains('has-modal');
+  }, 800);
+}
+setTimeout(bindDbg, 300);
+document.addEventListener('DOMContentLoaded', bindDbg);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(autoMusic, 300); });
 
 btn.addEventListener('click', () => {
+  ensureWebAudio();
+  if (BGM.length && (!musicOn || bgm.paused)) {
+    musicOn = true;
+    btn.classList.add('on');
+    bgm.volume = .30;
+    bgmStart();
+    bgm2Sync();
+    musicHintTick();
+    return;
+  }
   musicOn = !musicOn;
   btn.classList.toggle('on', musicOn);
   bgm2Sync();
@@ -2347,5 +2462,7 @@ document.addEventListener('visibilitychange', () => {
   else if (musicOn) actx.resume();
 });
 </script>
+<button class="music-hint" id="musicHint" type="button">♪ 点一下 · 放背景音乐</button>
+<pre id="dbg" style="display:none"></pre>
 </body>
 </html>
