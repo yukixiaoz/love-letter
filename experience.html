@@ -1787,7 +1787,8 @@ if (CQ.has('open') && coverEl) {
   const dots = document.getElementById('tlDots');
   if (!vp || !track || !dots) return;
 
-  const KEY = 'love-notes-v1';
+  const NO_DATE_BEFORE = 1794732320879;   // 早于这个时刻的信用「那天写下的」，之后的显示时间
+const KEY = 'love-notes-v1';
   const PAD = 120, STEP = 148;
   let W = 2600;
   let COUNT = Math.floor((W - PAD * 2) / STEP) + 1;
@@ -2033,7 +2034,7 @@ if (CQ.has('open') && coverEl) {
       editing = { note: payload };
       nmK.textContent = '一 封 挂 着 的 信';
       nmTitle.textContent = '那天写下的';
-      nmDate.textContent = (payload.ts && payload.d) ? payload.d : '';
+      nmDate.textContent = (payload.ts && payload.d && payload.ts > NO_DATE_BEFORE) ? payload.d : '';
       nmText.value = payload.text;
       nmText.readOnly = true;
       nmRec.hidden = true;
