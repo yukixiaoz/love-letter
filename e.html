@@ -775,12 +775,7 @@ html.flat .wheel-stage{max-width:620px}
       <button class="vl-play" id="vlPlay" type="button" aria-label="播放语音版">&#x2665;</button>
       <div class="vl-bar"><i id="vlBar"></i></div>
       <div class="vl-meta"><span id="vlCur">00:00</span><span id="vlState">还没录</span></div>
-      <div class="vl-tools">
-        <button class="vl-btn" id="vlRec" type="button">录一段</button>
-        
-        
-      </div>
-      <p class="vl-tip" id="vlTip">点红心听我念，也可以自己录一段</p>
+      <p class="vl-tip" id="vlTip">点红色心形，我念给你听</p>
     </div>
   </section>
 
@@ -1984,8 +1979,6 @@ if (CQ.has('open') && coverEl) {
     const bar = document.getElementById('vlBar');
     const cur = document.getElementById('vlCur');
     const stateEl = document.getElementById('vlState');
-    const recBtn = document.getElementById('vlRec');
-    const fileInput = document.getElementById('vlFile');
     const tip = document.getElementById('vlTip');
     if (!playBtn) return;
 
@@ -2028,7 +2021,7 @@ if (CQ.has('open') && coverEl) {
     const clearSrc = () => {
       playBtn.disabled = true;
       stateEl.textContent = '还没录';
-      tip.textContent = '录一段或上传一段，它会一直留在这个页面里';
+      tip.textContent = '点红色心形，我念给你听';
       bar.style.width = '0%';
       cur.textContent = '00:00';
     };
@@ -2076,48 +2069,6 @@ if (CQ.has('open') && coverEl) {
       cur.textContent = fmt(audio.currentTime);
     });
     audio.addEventListener('loadedmetadata', () => { cur.textContent = '00:00'; });
-
-    // 录音
-    let rec = null, chunks = [], stream = null, t0 = 0, tick = null;
-    recBtn.addEventListener('click', async () => {
-      if (rec) { rec.stop(); return; }
-      if (!navigator.mediaDevices || !window.MediaRecorder) { tip.textContent = '这个浏览器不支持录音'; return; }
-      recBtn.classList.add('on'); recBtn.textContent = '停止';
-      tip.textContent = '正在请求麦克风…';
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-      catch (e) { recBtn.classList.remove('on'); recBtn.textContent = '录一段'; tip.textContent = '没拿到麦克风权限'; return; }
-      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-      const mime = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
-      chunks = [];
-      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
-      rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-      rec.onstop = async () => {
-        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
-        rec = null;
-        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        clearInterval(tick);
-        recBtn.classList.remove('on'); recBtn.textContent = '录一段';
-        if (!blob.size) { tip.textContent = '没录到声音，再试一次'; return; }
-        try { await putClip(blob); } catch (e) {}
-        if (srcUrl) URL.revokeObjectURL(srcUrl);
-        srcUrl = URL.createObjectURL(blob);
-        setSrc(srcUrl, '你的录音');
-        tip.textContent = '已保存到这台设备';
-      };
-      rec.start(); t0 = Date.now();
-      tick = setInterval(() => { tip.textContent = '正在录 ' + Math.round((Date.now() - t0) / 1000) + ' 秒…再点一下停'; }, 300);
-    });
-
-    fileInput.addEventListener('change', async () => {
-      const f = fileInput.files && fileInput.files[0];
-      if (!f) return;
-      try { await putClip(f); } catch (e) {}
-      if (srcUrl) URL.revokeObjectURL(srcUrl);
-      srcUrl = URL.createObjectURL(f);
-      setSrc(srcUrl, '语音版');
-      tip.textContent = '已保存到这台设备';
-      fileInput.value = '';
-    });
 
     // 飘起来的小爱心
     const box = document.getElementById('vlHearts');
