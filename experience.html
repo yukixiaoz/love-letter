@@ -1339,6 +1339,28 @@ bgm.volume = 0;
 document.body.appendChild(bgm);
 let bgmIdx = -1, bgmDuck = false, bgmLast = "";
 
+/* ---- 第二层：无尽幸福（很轻地垫在主 BGM 下面，单独循环） ---- */
+const bgm2 = document.createElement('audio');
+bgm2.id = 'bgm2';
+bgm2.loop = true;
+bgm2.preload = 'auto';
+bgm2.volume = 0;
+bgm2.src = 'audio/endless.mp3';
+let bgm2OK = true;
+bgm2.addEventListener('error', () => { bgm2OK = false; });
+document.body.appendChild(bgm2);
+const BGM2_BASE = .055, BGM2_DUCK = .015;
+function bgm2Sync() {
+  if (!bgm2OK) return;
+  if (musicOn) {
+    bgm2.volume = bgmDuck ? BGM2_DUCK : BGM2_BASE;
+    const pr = bgm2.play();
+    if (pr && pr.catch) pr.catch(() => {});
+  } else {
+    try { bgm2.pause(); } catch (e) {}
+  }
+}
+
 const BGM_FAV = BGM.find(x => x.indexOf('出山') >= 0) || '';
 function bgmPick() {
   if (!BGM.length) return '';
@@ -1388,6 +1410,7 @@ bgm.addEventListener('ended', () => {
 function duckBgm(on) {
   bgmDuck = !!on;
   if (musicOn) bgmFade(bgmDuck ? .06 : .30, 320);
+  bgm2Sync();
 }
 
 function startMusic() {
@@ -1442,8 +1465,8 @@ function autoMusic() {
   }
   bgm.volume = .30;
   const pr = bgm.play();
-  if (!pr || !pr.then) { musicOn = true; btn.classList.add('on'); return; }
-  pr.then(() => { musicOn = true; btn.classList.add('on'); })
+  if (!pr || !pr.then) { musicOn = true; btn.classList.add('on'); bgm2Sync(); return; }
+  pr.then(() => { musicOn = true; btn.classList.add('on'); bgm2Sync(); })
     .catch(() => { try { bgm.pause(); } catch (e) {} armFirstTouch(); });
 }
 setTimeout(autoMusic, 400);
@@ -1452,6 +1475,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) setT
 btn.addEventListener('click', () => {
   musicOn = !musicOn;
   btn.classList.toggle('on', musicOn);
+  bgm2Sync();
   if (BGM.length) {
     if (musicOn) bgmStart(); else bgm.pause();
     return;
