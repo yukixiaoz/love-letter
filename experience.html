@@ -256,6 +256,17 @@ footer{position:relative;z-index:2;padding:0 0 46px;text-align:center;font-size:
   font:12px/1 "KaiTi","STKaiti",serif;letter-spacing:.4em;text-indent:.4em;
   color:rgba(150,110,110,.75);display:none;white-space:nowrap}
 .intro.tap .intro-tap{display:block;animation:tapPulse 2.4s ease-in-out infinite}
+.intro-load{position:absolute;left:50%;bottom:9vh;transform:translateX(-50%);margin:0;
+  font:12px/1 "KaiTi","STKaiti",serif;letter-spacing:.34em;text-indent:.34em;
+  color:rgba(150,110,110,.7);animation:tapPulse 1.8s ease-in-out infinite}
+.intro.playing .intro-load{display:none}
+.intro-rot{display:none;position:absolute;left:50%;top:7vh;transform:translateX(-50%);margin:0;
+  font:12px/1.6 "KaiTi","STKaiti",serif;letter-spacing:.24em;
+  color:rgba(160,120,120,.72);white-space:nowrap}
+@media (orientation:portrait) and (pointer:coarse){ .intro-rot{display:block} }
+.cover .cv-rot{display:none;position:absolute;left:50%;bottom:2.4vh;transform:translateX(-50%);
+  margin:0;font:11px/1.6 "KaiTi","STKaiti",serif;letter-spacing:.2em;color:rgba(255,235,240,.5)}
+@media (orientation:portrait) and (pointer:coarse){ .cover .cv-rot{display:block} }
 @keyframes tapPulse{0%,100%{opacity:.45}50%{opacity:.95}}
 
 /* ---------- cover / cherry tree ---------- */
@@ -263,6 +274,31 @@ body.cover-lock{overflow:hidden}
 .cover{position:fixed;inset:0;z-index:70;overflow:hidden;background:#0a0812;
   transition:opacity 1s ease, visibility 1s}
 .cover.open{opacity:0;visibility:hidden;pointer-events:none}
+/* ---------- 横屏手机：左右两栏 ---------- */
+@media (orientation:landscape) and (max-height:600px){
+  body .cover{display:flex !important;flex-direction:row !important;align-items:center !important;
+    justify-content:center !important;gap:3vw !important;padding:0 4vw !important}
+  body .cover .cv-top{position:static !important;width:46% !important;padding:0 !important;
+    text-align:left !important;transform:none !important;top:auto !important}
+  body .cover .cv-k{font-size:9px !important;letter-spacing:.3em !important;text-indent:.3em !important;margin-bottom:8px !important}
+  body .cover .cv-title{font-size:clamp(20px,3.4vw,30px) !important;line-height:1.45 !important}
+  body .cover .cv-lines{font-size:11.5px !important;line-height:1.85 !important;margin-top:10px !important;max-width:24em !important}
+  body .cover .cv-env-wrap{position:static !important;width:46% !important;bottom:auto !important;gap:0 !important}
+  body .cover .env{width:min(100%,360px) !important;max-width:360px !important}
+  body .cover .cv-hint{display:none !important}
+  body .cover .env-flap{height:38% !important}
+  body .cover .env-lab{top:62% !important}
+  body .cover .env-k{font-size:8px !important;letter-spacing:.28em !important;margin-bottom:5px !important}
+  body .cover .env-t{font-size:22px !important;margin:0 !important}
+  body .cover .env-rule{margin:7px auto 0 !important;width:48% !important}
+  body .cover .env-s{display:none !important}
+  body .cover .env-seal{width:78px !important;height:78px !important;bottom:0.5% !important}
+  body .cover .env-seal svg{inset:13px !important;width:58px !important;height:58px !important}
+  body .cover .cv-rot{display:none !important}
+  body .intro-rot{display:none !important}
+  body .intro-tap, body .intro-load{bottom:4vh !important}
+}
+
 
 .scene-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   opacity:0;transition:opacity .9s ease}
@@ -572,8 +608,10 @@ html.flat .wheel-stage{max-width:620px}
 <script>if(location.search.indexOf("debug")<0){window.onerror=null;}else{window.onerror=function(m,src,l,c){var d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;right:0;z-index:9999;background:#300;color:#f88;font:12px/1.5 monospace;padding:8px;white-space:pre-wrap';d.textContent='JS ERROR: '+m+' @'+l+':'+c;document.body.appendChild(d);};}</script>
 
 <div class="intro" id="intro">
-  <video id="introV" class="intro-v" src="intro.mp4" muted playsinline preload="auto" autoplay></video>
+  <video id="introV" class="intro-v" src="intro.mp4" muted playsinline preload="auto" poster="cover.jpg"></video>
   <div class="intro-veil"></div>
+  <p class="intro-load" id="introLoad">正在打开…</p>
+  <p class="intro-rot">把手机横过来，画面更完整</p>
   <p class="intro-tap" id="introTap">轻点屏幕 · 开始</p>
 </div>
 
@@ -651,6 +689,7 @@ html.flat .wheel-stage{max-width:620px}
       </div>
     </div>
     <p class="cv-hint">轻点樱花 · 拆开这封信</p>
+  <p class="cv-rot">把手机横过来，樱花树更完整</p>
   </div>
 </div>
 <div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -1459,7 +1498,20 @@ function openCover() {
   }, 1150);
 }
 if (sakuraEl) sakuraEl.addEventListener('click', openCover);
-if (envEl) envEl.addEventListener('click', e => { if (e.target !== sakuraEl) openCover(); });
+function tryLandscape() {
+  if (!matchMedia('(pointer:coarse)').matches) return;
+  if (innerHeight > innerWidth) {
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).then(lockLand).catch(() => {});
+      else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); lockLand(); }
+    } catch (e) {}
+  }
+}
+function lockLand() {
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
+}
+if (envEl) envEl.addEventListener('click', e => { tryLandscape(); if (e.target !== sakuraEl) openCover(); });
 
 /* ---------- intro film ---------- */
 const introEl = document.getElementById('intro');
@@ -1467,8 +1519,7 @@ const introV = document.getElementById('introV');
 const introTap = document.getElementById('introTap');
 const sceneV = document.getElementById('sceneV');
 let introDone = false;
-// 慢网兜底：6.5 秒还没播完就直接进正片，别让人卡在片头
-setTimeout(() => { if (!introDone) { try { endIntro(); } catch (e) {} } }, 6500);
+// 播放中的兜底计时移到 startFilm() 里，避免还没开播就被跳掉
 
 function startScene() {
   if (!sceneV) return;
@@ -1491,15 +1542,28 @@ function endIntro() {
 if (introEl && introV) {
   introV.addEventListener('ended', endIntro);
   introV.addEventListener('error', endIntro);
-  try { introV.playbackRate = 0.85; } catch (e) {}
-  const tryPlay = () => {
+  let filmStarted = false;
+  const startFilm = () => {
+    if (filmStarted) return;
+    filmStarted = true;
+    introEl.classList.add('playing');
+    introEl.classList.remove('tap');
+    try { introV.playbackRate = 0.85; } catch (e) {}
     const pr = introV.play();
     if (pr && pr.catch) pr.catch(() => introEl.classList.add('tap'));
+    // 从真正开播算起，6.5 秒还没完就进正片
+    setTimeout(() => { if (!introDone) { try { endIntro(); } catch (e) {} } }, 6500);
   };
-  tryPlay();
+  if (introV.readyState >= 3) startFilm();
+  else {
+    introV.addEventListener('canplay', startFilm, { once: true });
+    introV.addEventListener('loadeddata', startFilm, { once: true });
+    setTimeout(() => { if (!filmStarted) startFilm(); }, 3200);
+  }
   // 任何一次点击都能开始 / 跳过片头
   introEl.addEventListener('click', () => {
     introEl.classList.remove('tap');
+    tryLandscape();
     if (introV.ended || introV.currentTime >= introV.duration - .05) endIntro();
     else { const pr = introV.play(); if (pr && pr.catch) pr.catch(endIntro); }
   });
