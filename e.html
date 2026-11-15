@@ -248,8 +248,12 @@ footer{position:relative;z-index:2;padding:0 0 46px;text-align:center;font-size:
 .intro{position:fixed;inset:0;z-index:95;background:#fbfbf9;overflow:hidden;
   transition:opacity 1.15s ease, visibility 1.15s}
 .intro.done{opacity:0;visibility:hidden;pointer-events:none}
-.intro-v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  filter:blur(1.1px) saturate(1.06) brightness(1.04);transform:scale(1.03)}
+.intro-v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  background:#f6e9ef url(cover.jpg) center/cover no-repeat;
+  filter:blur(1.1px) saturate(1.06) brightness(1.04);transform:scale(1.03);
+  opacity:0;transition:opacity .45s ease}
+.intro-v.ready{opacity:1}
+@media (pointer:coarse){.intro-v{filter:none;transform:none}}
 .intro-veil{position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(115% 86% at 50% 48%, rgba(255,255,255,0) 30%, rgba(255,252,250,.42) 62%, rgba(255,255,255,.78) 100%)}
 .intro-tap{position:absolute;left:50%;bottom:9vh;transform:translateX(-50%);margin:0;
@@ -644,7 +648,7 @@ html.flat .wheel-stage{max-width:620px}
 <script>if(location.search.indexOf("debug")<0){window.onerror=null;}else{window.onerror=function(m,src,l,c){var d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;right:0;z-index:9999;background:#300;color:#f88;font:12px/1.5 monospace;padding:8px;white-space:pre-wrap';d.textContent='JS ERROR: '+m+' @'+l+':'+c;document.body.appendChild(d);};}</script>
 
 <div class="intro" id="intro">
-  <video id="introV" class="intro-v" src="intro.mp4" muted playsinline preload="auto" poster="cover.jpg"></video>
+  <video id="introV" class="intro-v" src="intro.mp4" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" disablepictureinpicture preload="auto" poster="cover.jpg"></video>
   <div class="intro-veil"></div>
   <p class="intro-load" id="introLoad">正在打开…</p>
   <p class="intro-rot">把手机横过来，画面更完整</p>
@@ -1619,7 +1623,8 @@ if (introEl && introV) {
   };
   if (introV.readyState >= 3) startFilm();
   else {
-    introV.addEventListener('canplay', startFilm, { once: true });
+    introV.addEventListener('playing', () => introV.classList.add('ready'), { once: true });
+introV.addEventListener('canplay', startFilm, { once: true });
     introV.addEventListener('loadeddata', startFilm, { once: true });
     setTimeout(() => { if (!filmStarted) startFilm(); }, 3200);
   }
